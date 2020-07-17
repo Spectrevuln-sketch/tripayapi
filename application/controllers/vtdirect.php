@@ -32,7 +32,7 @@ class Vtdirect extends CI_Controller
 	{
 		$token_id = $this->input->post('token_id');
 		$transaction_details = array(
-			'order_id' 			=> uniqid(),
+			'order_id' 			=> $this->db->get(''uniqid()),
 			'gross_amount' 	=> 10000
 		);
 
