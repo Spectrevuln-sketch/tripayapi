@@ -207,4 +207,16 @@ class Midtrans
 			false
 		);
 	}
+
+	public static function getcharge($params)
+	{
+
+		$result = Midtrans::post(
+			Midtrans::getBaseUrl() . '/charge',
+			Midtrans::$serverKey,
+			$params
+		);
+
+		return $result->token;
+	}
 }

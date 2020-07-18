@@ -27,6 +27,9 @@ class Snap extends CI_Controller
 		$params = array('server_key' => 'SB-Mid-server-qjMkTCJmmL0DwPIBM3KPLull', 'production' => false);
 		$this->midtrans->config($params);
 		$this->load->helper('url');
+		$this->load->library('REST_CONTROLLER');
+		$this->load->model('Pelanggan_model');
+		$this->load->library('veritrans');
 	}
 
 	public function index()
@@ -34,65 +37,25 @@ class Snap extends CI_Controller
 
 		// Required
 		$transaction_details = array(
-			'order_id' => rand(),
+			'order_id' => $this->db->get_where('transaction_details_Midtrans', 'order_detail'  . uniqid()()),
 			'gross_amount' => 94000, // no decimal allowed for creditcard
 		);
-		echo json_encode($transaction_details);
-		die;
 
 		// Optional
-		$item1_details = array(
-			'id' => 'a1',
-			'price' => 18000,
-			'quantity' => 3,
-			'name' => "Apple"
+		$item_details = array(
+			'id' => $this->Pelanggan_model->get_data_pelanggan('pelanggan', 'fullnama')->row_array(),
+			'price' => $this->db->get_where('item', 'harga_item')->row_array(),
+			'kategori_item' => $this->db->get_where('item', 'kategori_item')->row_array(),
+			'name' => $this->db->get_where('item', 'nama_item')->row_array()
 		);
-
-		// Optional
-		$item2_details = array(
-			'id' => 'a2',
-			'price' => 20000,
-			'quantity' => 2,
-			'name' => "Orange"
-		);
-
-		// Optional
-		$item_details = array($item1_details, $item2_details);
 
 		// Optional
 		$billing_address = array(
-			'first_name'    => "Andri",
-			'last_name'     => "Litani",
-			'address'       => "Mangga 20",
-			'city'          => "Jakarta",
-			'postal_code'   => "16602",
-			'phone'         => "081122334455",
-			'country_code'  => 'IDN'
-		);
-
-		// Optional
-		$shipping_address = array(
-			'first_name'    => "Obet",
-			'last_name'     => "Supriadi",
-			'address'       => "Manggis 90",
-			'city'          => "Jakarta",
-			'postal_code'   => "16601",
-			'phone'         => "08113366345",
-			'country_code'  => 'IDN'
-		);
-
-		// Optional
-		$customer_details = array(
-			'first_name'    => "Andri",
-			'last_name'     => "Litani",
-			'email'         => "andri@litani.com",
-			'phone'         => "081122334455",
-			'billing_address'  => $billing_address,
-			'shipping_address' => $shipping_address
+			$this->db->get('pelanggan')->result_array()
 		);
 
 		// Data yang akan dikirim untuk request redirect_url.
-		$credit_card['secure'] = true;
+		$credit_card = '';
 		//ser save_card true to enable oneclick or 2click
 		//$credit_card['save_card'] = true;
 
@@ -106,7 +69,7 @@ class Snap extends CI_Controller
 		$transaction_data = array(
 			'transaction_details' => $transaction_details,
 			'item_details'       => $item_details,
-			'customer_details'   => $customer_details,
+			'customer_details'   => $billing_address,
 			'credit_card'        => $credit_card,
 			'expiry'             => $custom_expiry
 		);
@@ -117,11 +80,64 @@ class Snap extends CI_Controller
 		echo $snapToken;
 	}
 
-	public function finish()
+	public function finish($result)
 	{
 		$result = json_decode($this->input->post('result_data'));
 		echo 'RESULT <br><pre>';
 		var_dump($result);
 		echo '</pre>';
+	}
+
+
+	public function request_charge($result)
+	{
+		// Required
+		$transaction_details = array(
+			'order_id' => $this->db->get_where('transaction_details_Midtrans', 'order_detail'  . uniqid()()),
+			'gross_amount' => 94000, // no decimal allowed for creditcard
+		);
+
+		// Optional
+		$item_details = array(
+			'id' => $this->Pelanggan_model->get_data_pelanggan('pelanggan', 'fullnama')->row_array(),
+			'price' => $this->db->get_where('item', 'harga_item')->row_array(),
+			'kategori_item' => $this->db->get_where('item', 'kategori_item')->row_array(),
+			'name' => $this->db->get_where('item', 'nama_item')->row_array()
+		);
+
+		// Optional
+		$billing_address = array(
+			$this->db->get('pelanggan')->result_array()
+		);
+
+		// Data yang akan dikirim untuk request redirect_url.
+		$bank_transfer = [
+
+			'payment_type'  => htmlspecialchars($this->input->post('bank_transfer')),
+			'bank'  => htmlspecialchars($this->input->post('bank')),
+			'va_number'  => htmlspecialchars($this->input->post('va_number')),
+		];
+		//ser save_card true to enable oneclick or 2click
+		//$credit_card['save_card'] = true;
+
+		$time = time();
+		$custom_expiry = array(
+			'start_time' => date("Y-m-d H:i:s O", $time),
+			'unit' => 'minute',
+			'duration'  => 2
+		);
+
+		$transaction_data = array(
+			'transaction_details' => $transaction_details,
+			'item_details'       => $item_details,
+			'customer_details'   => $billing_address,
+			'credit_card'        => $bank_transfer,
+			'expiry'             => $custom_expiry
+		);
+
+		error_log(json_encode($transaction_data));
+		$cardToken = $this->midtrans->getSnapToken($transaction_data);
+		error_log($cardToken);
+		echo $cardToken;
 	}
 }
