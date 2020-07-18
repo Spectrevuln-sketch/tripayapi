@@ -1,6 +1,6 @@
 <?php if (!defined('BASEPATH')) exit('No direct script access allowed');
-require APPPATH . '/libraries/REST_Controller.php';
 require APPPATH . '/libraries/Midtrans.php';
+require APPPATH . '/libraries/Veritrans.php';
 class Snap extends CI_Controller
 {
 
@@ -27,9 +27,9 @@ class Snap extends CI_Controller
 		$params = array('server_key' => 'SB-Mid-server-qjMkTCJmmL0DwPIBM3KPLull', 'production' => false);
 		$this->midtrans->config($params);
 		$this->load->helper('url');
-		$this->load->library('REST_CONTROLLER');
 		$this->load->model('Pelanggan_model');
 		$this->load->library('veritrans');
+		$this->veritrans->config($params);
 	}
 
 	public function index()
@@ -89,7 +89,7 @@ class Snap extends CI_Controller
 	}
 
 
-	public function request_charge($result)
+	public function request_charge()
 	{
 		// Required
 		$transaction_details = array(
@@ -136,8 +136,15 @@ class Snap extends CI_Controller
 		);
 
 		error_log(json_encode($transaction_data));
-		$cardToken = $this->midtrans->getSnapToken($transaction_data);
+		$cardToken = $this->midtrans->getcharge($transaction_data);
 		error_log($cardToken);
 		echo $cardToken;
+	}
+	public function finish_charge()
+	{
+		$bank_token = json_decode($this->input->post('result_data'));
+		echo 'RESULT <br><pre>';
+		var_dump($bank_token);
+		echo '</pre>';
 	}
 }
